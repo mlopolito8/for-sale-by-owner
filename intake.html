@@ -9,22 +9,23 @@
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html">FSBO App</a>
-      <nav class="steps-nav" aria-label="Progress">
-        <span aria-current="step">1 · Your home</span><span>2 · Price</span><span>3 · Listing</span>
-      </nav>
+      <a class="brand" href="index.html"><span class="brand-mark">FS</span><span class="brand-text">FSBO App</span></a>
+      <nav class="steps-nav" aria-label="Progress" data-step="1"></nav>
     </div>
   </header>
 
   <main>
     <div class="wrap">
-      <h1>Tell us about your home</h1>
-      <p class="lede">Fields marked <span class="req">*</span> are needed for the price estimate. Everything else is optional and helps with your listing.</p>
+      <div class="page-head">
+        <p class="eyebrow">Step 1 of 3 · About 5 minutes</p>
+        <h1>Tell us about your home</h1>
+        <p class="lede">Fields marked <span class="req">*</span> are needed for the price estimate. Everything else is optional and helps with your listing.</p>
+      </div>
 
       <form id="intake" novalidate>
         <div id="groups"></div>
         <p class="form-summary" id="form-summary" role="alert" hidden></p>
-        <div class="btn-row">
+        <div class="btn-row between">
           <button class="btn" type="submit">See my price estimate →</button>
           <button class="btn btn-secondary" type="button" id="start-over">Start over</button>
         </div>
@@ -37,6 +38,7 @@
   </footer>
 
   <script src="js/property.js"></script>
+  <script src="js/nav.js"></script>
   <script>
   (function () {
     const P = window.Property;

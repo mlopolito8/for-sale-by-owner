@@ -9,16 +9,17 @@
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html">FSBO App</a>
-      <nav class="steps-nav" aria-label="Progress">
-        <span>1 · Your home</span><span aria-current="step">2 · Price</span><span>3 · Listing</span>
-      </nav>
+      <a class="brand" href="index.html"><span class="brand-mark">FS</span><span class="brand-text">FSBO App</span></a>
+      <nav class="steps-nav" aria-label="Progress" data-step="2"></nav>
     </div>
   </header>
 
   <main>
     <div class="wrap">
-      <h1>Your estimated value</h1>
+      <div class="page-head">
+        <p class="eyebrow">Step 2 of 3</p>
+        <h1>Your estimated value</h1>
+      </div>
 
       <section class="card" aria-live="polite">
         <div class="big-number" id="estimate">Calculating…</div>
@@ -31,12 +32,12 @@
       <section class="grid-2">
         <div class="card">
           <h2>Method A · What you paid, adjusted</h2>
-          <div class="big-number" style="font-size:1.8rem" id="methodA">—</div>
+          <div class="big-number" style="font-size:2rem" id="methodA">—</div>
           <p class="small" id="methodA-how">Your purchase price × how much typical home values in your ZIP have changed since you bought.</p>
         </div>
         <div class="card">
           <h2>Method B · Similar homes nearby</h2>
-          <div class="big-number" style="font-size:1.8rem" id="methodB">—</div>
+          <div class="big-number" style="font-size:2rem" id="methodB">—</div>
           <p class="small" id="methodB-how">The typical value of a home with the same number of bedrooms in your ZIP.</p>
         </div>
       </section>
@@ -65,8 +66,9 @@
         square footage, so treat it as a starting point and not an appraisal.
       </p>
 
-      <div class="btn-row">
-        <a class="btn" href="listing.html">Next: build your listing →</a>
+      <div class="btn-row between">
+        <a class="btn btn-ghost" href="intake.html">← Edit details</a>
+        <a class="btn btn-accent" href="listing.html">Next: build your listing →</a>
       </div>
     </div>
   </main>
@@ -77,6 +79,7 @@
   </footer>
 
   <script src="js/property.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/estimate.js"></script>
   <script>
   (async function () {
@@ -130,6 +133,8 @@
       return;
     }
 
+    // Hand the estimate to listing.html (pre-fills the list price on the PDF sheet).
+    try { localStorage.setItem("fsbo.estimate.v1", JSON.stringify({ estimate: r.estimate, low: r.low, high: r.high, at: new Date().toISOString() })); } catch (e) {}
     $("estimate").textContent = usd(r.estimate);
     $("range").textContent = `Likely range: ${usd(r.low)} to ${usd(r.high)}`;
 

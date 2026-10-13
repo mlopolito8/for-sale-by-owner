@@ -9,20 +9,44 @@
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html">FSBO App</a>
+      <a class="brand" href="index.html"><span class="brand-mark">FS</span><span class="brand-text">FSBO App</span></a>
+      <a class="btn btn-sm" href="intake.html" id="header-cta">Get started</a>
     </div>
   </header>
 
   <main>
     <div class="wrap">
-      <section>
-        <h1>Price your home, write your listing, keep the commission.</h1>
-        <p class="lede">Selling on your own? We'll estimate what your home is worth from local market data and help you put together a listing you can hand to a flat-fee MLS service.</p>
-        <div class="btn-row">
-          <a class="btn" href="intake.html">Get started</a>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">For sale by owner · built at MIT</p>
+          <h1>Sell your home. <span class="grad">Keep the commission.</span></h1>
+          <p class="lede">Selling on your own? We estimate what your home is worth from local market data, then help you build a polished listing sheet you can share with buyers or hand to a flat-fee MLS service.</p>
+          <div class="btn-row">
+            <a class="btn btn-accent" href="intake.html" id="hero-cta">Get started →</a>
+            <a class="btn btn-ghost" href="#how">How it works</a>
+          </div>
+          <div class="trust"><span>No account needed</span><span>Saved only in your browser</span><span>About 10 minutes</span></div>
+        </div>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-card">
+            <div class="mock-photo">
+              <span class="pill">For sale by owner</span>
+              <svg viewBox="0 0 300 170"><path d="M40 85 L150 18 L260 85" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/><rect x="62" y="78" width="176" height="92" fill="#fbfaf7"/><rect x="134" y="112" width="32" height="58" rx="3" fill="#0f766e"/><rect x="82" y="98" width="34" height="28" rx="3" fill="#cfe6e2"/><rect x="184" y="98" width="34" height="28" rx="3" fill="#cfe6e2"/></svg>
+            </div>
+            <div class="mock-body">
+              <div class="row"><span class="addr">42 Maple Street</span><span class="p">$612,000</span></div>
+              <div class="stats"><span><b>4</b> beds</span><span><b>2½</b> baths</span><span><b>2,240</b> sq ft</span></div>
+            </div>
+          </div>
+          <div class="mock-float">
+            <div class="k">Estimated value · example</div>
+            <div class="v">$569k – $655k</div>
+            <div class="bar"><i></i></div>
+          </div>
         </div>
       </section>
 
+      <div class="section-head" id="how"><p class="eyebrow">How it works</p><h2 style="font-size:clamp(1.6rem,3.5vw,2.4rem)">Three steps from “thinking about it” to a listing you can share.</h2></div>
       <section class="grid-3" aria-label="How it works">
         <div class="card">
           <div class="step-num">1</div>
@@ -36,8 +60,8 @@
         </div>
         <div class="card">
           <div class="step-num">3</div>
-          <h2>Generate your listing</h2>
-          <p>A short Q&amp;A fills in the details, then we draft MLS-ready fields and a public description.</p>
+          <h2>Download your listing sheet</h2>
+          <p>A short Q&amp;A fills in the details, then we draft MLS-ready fields, a description, and a print-ready PDF.</p>
         </div>
       </section>
 
@@ -47,7 +71,7 @@
       </section>
 
       <div class="btn-row">
-        <a class="btn" href="intake.html">Get started →</a>
+        <a class="btn" href="intake.html" id="bottom-cta">Get started →</a>
       </div>
     </div>
   </main>
@@ -55,6 +79,15 @@
   <footer class="site-footer">
     <div class="wrap">Student project (MIT). Estimates are informational, not appraisals. Home value data: Zillow Research.</div>
   </footer>
-<a href="chat.html" style="position:fixed;bottom:20px;right:20px;padding:12px 18px;background:#1f3a5f;color:#fff;border-radius:999px;text-decoration:none;font-size:16px;">Build your listing</a>
+
+  <script src="js/property.js"></script>
+  <script>
+    // Returning visitor: offer to pick up where they left off.
+    if (window.Property && window.Property.load()) {
+      ["hero-cta", "bottom-cta"].forEach((id) => { const a = document.getElementById(id); a.textContent = "Continue where you left off →"; a.href = "price.html"; });
+      document.getElementById("header-cta").textContent = "Continue";
+      document.getElementById("header-cta").href = "price.html";
+    }
+  </script>
 </body>
 </html>
