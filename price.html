@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your price estimate — FSBO App</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">FSBO App</a>
+      <nav class="steps-nav" aria-label="Progress">
+        <span>1 · Your home</span><span aria-current="step">2 · Price</span><span>3 · Listing</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <!-- PLACEHOLDER (Block 1). Block 2 replaces the sample numbers with the ZHVI calculation. -->
+      <span class="badge">Sample numbers: estimator coming in Block 2</span>
+      <h1 style="margin-top:12px">Your estimated value</h1>
+
+      <section class="card">
+        <div class="big-number" id="estimate">$—</div>
+        <div class="range" id="range">Likely range: $— to $—</div>
+        <p class="small" id="freshness">Based on Zillow Home Value Index (ZHVI) data.</p>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <h2>Method A · What you paid, adjusted</h2>
+          <div class="big-number" style="font-size:1.8rem" id="methodA">$—</div>
+          <p class="small">Your purchase price × how much typical home values in your ZIP have changed since you bought.</p>
+        </div>
+        <div class="card">
+          <h2>Method B · Similar homes nearby</h2>
+          <div class="big-number" style="font-size:1.8rem" id="methodB">$—</div>
+          <p class="small">The typical value of a home with the same number of bedrooms in your ZIP.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Your home</h2>
+        <dl class="record" id="summary"></dl>
+        <p><a href="intake.html">Edit details</a></p>
+      </section>
+
+      <div class="btn-row">
+        <a class="btn" href="listing.html">Next: build your listing →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">Estimates are informational, not appraisals. ZIP-level indexes can't see condition, renovations, or lot quality. Home value data: Zillow Research (zillow.com/research/data).</div>
+  </footer>
+
+  <script src="js/property.js"></script>
+  <script>
+  (function () {
+    const P = window.Property;
+    const rec = P.load();
+    if (!rec) { window.location.replace("intake.html"); return; }
+
+    const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    // --- SAMPLE MATH (placeholder only) ---
+    // Assumes values rose 4%/year since purchase. Block 2 swaps this for
+    // price_paid × ZHVI(latest) ÷ ZHVI(purchase month), from /data/zhvi/*.json.
+    const yearsHeld = new Date().getFullYear() - rec.purchaseYear;
+    const methodA = rec.pricePaid * Math.pow(1.04, yearsHeld);
+    const methodB = methodA * 0.97;
+    const blend = 0.7 * methodA + 0.3 * methodB;
+
+    document.getElementById("methodA").textContent = usd(methodA);
+    document.getElementById("methodB").textContent = usd(methodB);
+    document.getElementById("estimate").textContent = usd(blend);
+    document.getElementById("range").textContent = `Likely range: ${usd(blend * 0.93)} to ${usd(blend * 1.07)}`;
+
+    // --- Record summary ---
+    const rows = [
+      ["Address", rec.address || "—"],
+      ["ZIP", rec.zip],
+      ["Type", P.labelFor("propertyType", rec.propertyType)],
+      ["Beds / baths", `${rec.bedrooms} bd · ${rec.bathrooms} ba`],
+      ["Size", `${rec.sqft.toLocaleString("en-US")} sq ft`],
+      ["Year built", rec.yearBuilt],
+      ["Bought", `${months[rec.purchaseMonth - 1]} ${rec.purchaseYear} for ${usd(rec.pricePaid)}`],
+    ];
+    const dl = document.getElementById("summary");
+    rows.forEach(([k, v]) => {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd"); dd.textContent = v;
+      dl.append(dt, dd);
+    });
+  })();
+  </script>
+</body>
+</html>

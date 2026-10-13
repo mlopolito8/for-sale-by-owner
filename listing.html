@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build your listing — FSBO App</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">FSBO App</a>
+      <nav class="steps-nav" aria-label="Progress">
+        <span>1 · Your home</span><span>2 · Price</span><span aria-current="step">3 · Listing</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <!-- PLACEHOLDER (Block 1). Block 3 adds the survey panel + live MLS preview. -->
+      <span class="badge">Coming in Block 3</span>
+      <h1 style="margin-top:12px">Build your listing</h1>
+      <p class="lede">We'll ask a few questions about what makes your home stand out, then draft MLS-ready fields and a public description.</p>
+
+      <section class="card">
+        <h2>What we already know</h2>
+        <dl class="record" id="summary"></dl>
+        <p><a href="intake.html">Edit details</a></p>
+      </section>
+
+      <div class="btn-row">
+        <a class="btn btn-secondary" href="price.html">← Back to price</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">We don't handle offers, contracts, payments, or closing.</div>
+  </footer>
+
+  <script src="js/property.js"></script>
+  <script>
+  (function () {
+    const P = window.Property;
+    const rec = P.load();
+    if (!rec) { window.location.replace("intake.html"); return; }
+
+    // Show every filled-in field, grouped order, using schema labels.
+    const dl = document.getElementById("summary");
+    for (const f of P.FIELDS) {
+      let v = rec[f.name];
+      if (v === undefined || (Array.isArray(v) && !v.length)) continue;
+      if (Array.isArray(v)) v = v.map((x) => P.labelFor(f.name, x)).join(", ");
+      else if (f.options) v = P.labelFor(f.name, v);
+      const dt = document.createElement("dt"); dt.textContent = f.label;
+      const dd = document.createElement("dd"); dd.textContent = v;
+      dl.append(dt, dd);
+    }
+  })();
+  </script>
+</body>
+</html>
