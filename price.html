@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your price estimate — FSBO App</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">FSBO App</a>
+      <nav class="steps-nav" aria-label="Progress">
+        <span>1 · Your home</span><span aria-current="step">2 · Price</span><span>3 · Listing</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <h1>Your estimated value</h1>
+
+      <section class="card" aria-live="polite">
+        <div class="big-number" id="estimate">Calculating…</div>
+        <div class="range" id="range"></div>
+        <p class="small" id="freshness"></p>
+      </section>
+
+      <div id="notes" class="note" style="margin-top:16px" hidden></div>
+
+      <section class="grid-2">
+        <div class="card">
+          <h2>Method A · What you paid, adjusted</h2>
+          <div class="big-number" style="font-size:1.8rem" id="methodA">—</div>
+          <p class="small" id="methodA-how">Your purchase price × how much typical home values in your ZIP have changed since you bought.</p>
+        </div>
+        <div class="card">
+          <h2>Method B · Similar homes nearby</h2>
+          <div class="big-number" style="font-size:1.8rem" id="methodB">—</div>
+          <p class="small" id="methodB-how">The typical value of a home with the same number of bedrooms in your ZIP.</p>
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card" id="position-card" hidden>
+          <h2>Your local market</h2>
+          <p id="position"></p>
+          <p class="small" id="position-detail"></p>
+        </div>
+        <div class="card" id="context-card" hidden>
+          <h2>How homes are selling</h2>
+          <p id="context"></p>
+          <p class="small" id="context-detail"></p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Your home</h2>
+        <dl class="record" id="summary"></dl>
+        <p><a href="intake.html">Edit details</a></p>
+      </section>
+
+      <p class="small" style="margin-top:16px">
+        This estimate uses ZIP-level market indexes. It can't see your home's condition, renovations, lot, or exact
+        square footage, so treat it as a starting point and not an appraisal.
+      </p>
+
+      <div class="btn-row">
+        <a class="btn" href="listing.html">Next: build your listing →</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">Home value data: Zillow Home Value Index (ZHVI) and market data from
+      <a href="https://www.zillow.com/research/data/" rel="noopener">Zillow Research</a>.</div>
+  </footer>
+
+  <script src="js/property.js"></script>
+  <script src="js/estimate.js"></script>
+  <script>
+  (async function () {
+    const P = window.Property, E = window.Estimator;
+    const rec = P.load();
+    if (!rec) { window.location.replace("intake.html"); return; }
+
+    const $ = (id) => document.getElementById(id);
+    const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+    const pct = (x) => Math.round(x * 100) + "%";
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const ym = (s) => { const [y, m] = s.split("-").map(Number); return `${months[m - 1]} ${y}`; };
+
+    // Record summary
+    [
+      ["Address", rec.address || "—"],
+      ["ZIP", rec.zip],
+      ["Type", P.labelFor("propertyType", rec.propertyType)],
+      ["Beds / baths", `${rec.bedrooms} bd · ${rec.bathrooms} ba`],
+      ["Size", `${rec.sqft.toLocaleString("en-US")} sq ft`],
+      ["Year built", rec.yearBuilt],
+      ["Bought", `${months[rec.purchaseMonth - 1]} ${rec.purchaseYear} for ${usd(rec.pricePaid)}`],
+    ].forEach(([k, v]) => {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd"); dd.textContent = v;
+      $("summary").append(dt, dd);
+    });
+
+    let r, index;
+    try {
+      const loaded = await E.loadZip(rec.zip);
+      index = loaded.index;
+      r = E.estimate(rec, loaded.zd);
+    } catch (err) {
+      console.error(err);
+      $("estimate").textContent = "Couldn't load market data";
+      $("range").textContent = "Check your connection and refresh the page.";
+      return;
+    }
+
+    if (index) $("freshness").textContent = `Based on Zillow Home Value Index data through ${ym(index.latest)}.`;
+
+    if (r.notes.length) {
+      $("notes").hidden = false;
+      r.notes.forEach((n) => { const p = document.createElement("p"); p.textContent = n; $("notes").appendChild(p); });
+    }
+
+    if (!r.ok) {
+      $("estimate").textContent = "No estimate yet";
+      $("range").textContent = `We currently cover Massachusetts plus a few test ZIPs. ${rec.zip} isn't included yet.`;
+      return;
+    }
+
+    $("estimate").textContent = usd(r.estimate);
+    $("range").textContent = `Likely range: ${usd(r.low)} to ${usd(r.high)}`;
+
+    if (r.methodA) {
+      const a = r.methodA, chg = (a.factor - 1) * 100;
+      $("methodA").textContent = usd(a.value);
+      $("methodA-how").textContent =
+        `You paid ${usd(rec.pricePaid)} in ${a.fromMonth}. Typical values for ${a.seriesLabel} in ${rec.zip} have ` +
+        `${chg >= 0 ? "risen" : "fallen"} ${Math.abs(chg).toFixed(0)}% since then (${usd(a.fromIndex)} → ${usd(a.toIndex)}, ${a.toMonth}).`;
+    } else {
+      $("methodA").textContent = "Not available";
+    }
+
+    if (r.methodB) {
+      const b = r.methodB;
+      $("methodB").textContent = usd(b.value);
+      $("methodB-how").textContent = `The typical ${b.bedroomsLabel}-bedroom home in ${rec.zip} as of ${b.month}.`;
+    } else {
+      $("methodB").textContent = "Not available";
+    }
+
+    if (r.methodA && r.methodB) {
+      $("range").textContent += ` · weighted ${Math.round(r.weightA * 100)}% Method A, ${Math.round((1 - r.weightA) * 100)}% Method B`;
+    }
+
+    if (r.position) {
+      const p = r.position;
+      $("position-card").hidden = false;
+      $("position").textContent = `Your estimate is ${p.band} in ${p.city}.`;
+      $("position-detail").textContent =
+        `Typical values in ${p.city}: lower-priced homes ${usd(p.lowerTier)}` +
+        (p.middle ? `, mid-priced ${usd(p.middle)} (your ZIP)` : "") + `, higher-priced ${usd(p.upperTier)}.`;
+    }
+
+    if (r.context && r.context.pctSoldAboveList != null) {
+      const c = r.context;
+      $("context-card").hidden = false;
+      $("context").textContent =
+        `In the ${c.metroName} area, ${pct(c.pctSoldAboveList)} of homes sold above list price` +
+        (c.pctSoldBelowList != null ? ` and ${pct(c.pctSoldBelowList)} sold below` : "") +
+        ` (${ym(c.pctSoldAboveListMonth)}).`;
+      if (c.medianListPrice) $("context-detail").textContent = `Metro median list price: ${usd(c.medianListPrice)} (${ym(c.medianListPriceMonth)}).`;
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tell us about your home — FSBO App</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">FSBO App</a>
+      <nav class="steps-nav" aria-label="Progress">
+        <span aria-current="step">1 · Your home</span><span>2 · Price</span><span>3 · Listing</span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <h1>Tell us about your home</h1>
+      <p class="lede">Fields marked <span class="req">*</span> are needed for the price estimate. Everything else is optional and helps with your listing.</p>
+
+      <form id="intake" novalidate>
+        <div id="groups"></div>
+        <p class="form-summary" id="form-summary" role="alert" hidden></p>
+        <div class="btn-row">
+          <button class="btn" type="submit">See my price estimate →</button>
+          <button class="btn btn-secondary" type="button" id="start-over">Start over</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">Your answers are saved only in this browser.</div>
+  </footer>
+
+  <script src="js/property.js"></script>
+  <script>
+  (function () {
+    const P = window.Property;
+    const groupsEl = document.getElementById("groups");
+    const form = document.getElementById("intake");
+    const summary = document.getElementById("form-summary");
+
+    // --- Build the form from the shared schema so field names can't drift ---
+    function el(tag, attrs = {}, children = []) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v === undefined || v === false) continue;
+        if (k === "text") n.textContent = v; else n.setAttribute(k, v === true ? "" : v);
+      }
+      children.forEach((c) => c && n.appendChild(c));
+      return n;
+    }
+
+    for (const g of P.GROUPS) {
+      const grid = el("div", { class: "field-grid" });
+      for (const f of g.fields) {
+        const id = "f-" + f.name;
+        const wrap = el("div", { class: "field" + (f.type === "checkboxes" ? " wide" : ""), "data-field": f.name });
+        const label = el("label", { for: f.type === "checkboxes" ? undefined : id, text: f.label });
+        if (f.required) { label.appendChild(document.createTextNode(" ")); label.appendChild(el("span", { class: "req", "aria-hidden": "true", text: "*" })); }
+        wrap.appendChild(label);
+
+        let input;
+        if (f.type === "select") {
+          input = el("select", { id, name: f.name, required: f.required });
+          input.appendChild(el("option", { value: "", text: "Select…" }));
+          f.options.forEach(([v, t]) => input.appendChild(el("option", { value: v, text: t })));
+        } else if (f.type === "checkboxes") {
+          input = el("div", { class: "checks", role: "group", "aria-label": f.label });
+          f.options.forEach(([v, t]) => {
+            const cb = el("input", { type: "checkbox", name: f.name, value: v });
+            input.appendChild(el("label", {}, [cb, document.createTextNode(t)]));
+          });
+        } else {
+          input = el("input", {
+            id, name: f.name, type: f.type === "number" ? "number" : "text", required: f.required,
+            min: f.min, max: f.max, step: f.step, pattern: f.pattern, inputmode: f.inputmode || (f.type === "number" ? "decimal" : undefined),
+            maxlength: f.maxlength,
+          });
+        }
+        wrap.appendChild(input);
+        if (f.hint) wrap.appendChild(el("span", { class: "hint", text: f.hint }));
+        wrap.appendChild(el("span", { class: "error-msg", id: id + "-err", "aria-live": "polite" }));
+        grid.appendChild(wrap);
+      }
+      groupsEl.appendChild(el("fieldset", {}, [el("legend", { text: g.title }), grid]));
+    }
+
+    // --- Read / write form values ---
+    function readForm() {
+      const raw = {};
+      for (const f of P.FIELDS) {
+        if (f.type === "checkboxes") {
+          raw[f.name] = [...form.querySelectorAll(`input[name="${f.name}"]:checked`)].map((c) => c.value);
+        } else {
+          raw[f.name] = form.elements[f.name].value;
+        }
+      }
+      return P.normalize(raw);
+    }
+
+    function fillForm(rec) {
+      for (const f of P.FIELDS) {
+        const v = rec[f.name];
+        if (v === undefined) continue;
+        if (f.type === "checkboxes") {
+          form.querySelectorAll(`input[name="${f.name}"]`).forEach((c) => { c.checked = v.includes(c.value); });
+        } else {
+          form.elements[f.name].value = v;
+        }
+      }
+    }
+
+    function showErrors(errors) {
+      form.querySelectorAll(".field").forEach((w) => {
+        const name = w.dataset.field;
+        const msg = errors[name] || "";
+        w.classList.toggle("has-error", !!msg);
+        w.querySelector(".error-msg").textContent = msg;
+        const input = w.querySelector("input, select");
+        if (input && input.id) input.setAttribute("aria-invalid", msg ? "true" : "false");
+      });
+      const n = Object.keys(errors).length;
+      summary.hidden = n === 0;
+      summary.textContent = n ? `Please fix ${n} field${n > 1 ? "s" : ""} above.` : "";
+    }
+
+    // Prefill if the user has been here before.
+    const existing = P.load();
+    if (existing) fillForm(existing);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const rec = readForm();
+      const errors = P.validate(rec);
+      showErrors(errors);
+      if (Object.keys(errors).length) {
+        const first = form.querySelector(".has-error input, .has-error select");
+        if (first) first.focus();
+        return;
+      }
+      P.save(rec);
+      window.location.href = "price.html";
+    });
+
+    // Clear an error as soon as the field is edited.
+    form.addEventListener("input", (e) => {
+      const w = e.target.closest(".field");
+      if (w && w.classList.contains("has-error")) {
+        w.classList.remove("has-error");
+        w.querySelector(".error-msg").textContent = "";
+      }
+    });
+
+    document.getElementById("start-over").addEventListener("click", () => {
+      P.clear(); form.reset(); showErrors({});
+    });
+  })();
+  </script>
+</body>
+</html>
