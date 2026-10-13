@@ -5,59 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Build your listing — FSBO App</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sheet.css">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html">FSBO App</a>
-      <nav class="steps-nav" aria-label="Progress">
-        <span>1 · Your home</span><span>2 · Price</span><span aria-current="step">3 · Listing</span>
-      </nav>
+      <a class="brand" href="index.html"><span class="brand-mark">FS</span><span class="brand-text">FSBO App</span></a>
+      <nav class="steps-nav" aria-label="Progress" data-step="3"></nav>
     </div>
   </header>
 
   <main>
     <div class="wrap">
-      <!-- PLACEHOLDER (Block 1). Block 3 adds the survey panel + live MLS preview. -->
-      <span class="badge">Coming in Block 3</span>
-      <h1 style="margin-top:12px">Build your listing</h1>
-      <p class="lede">We'll ask a few questions about what makes your home stand out, then draft MLS-ready fields and a public description.</p>
+      <div class="page-head">
+        <p class="eyebrow">Step 3 of 3</p>
+        <h1>Build your listing</h1>
+        <p class="lede">Answer a few questions about what makes your home stand out. Your listing sheet fills in on the right. When it looks right, save it as a PDF to share with buyers or send to a flat-fee MLS service.</p>
+      </div>
 
-      <section class="card">
-        <h2>What we already know</h2>
-        <dl class="record" id="summary"></dl>
-        <p><a href="intake.html">Edit details</a></p>
-      </section>
+      <div class="builder">
+        <!-- Left: the survey -->
+        <section class="card chat" aria-label="Listing questions">
+          <div class="chat-head">
+            <h2>Listing assistant</h2>
+            <span class="mode-pill" id="mode-pill">Connecting…</span>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+          <div class="chat-log" id="chat-log" aria-live="polite"></div>
+          <div class="quick" id="quick"></div>
+          <form class="chat-form" id="chat-form">
+            <label for="chat-input" class="sr-only" style="position:absolute;left:-9999px">Your answer</label>
+            <textarea id="chat-input" placeholder="Type your answer…" rows="1"></textarea>
+            <button class="btn" type="submit" id="send">Send</button>
+          </form>
+        </section>
 
-      <div class="btn-row">
-        <a class="btn btn-secondary" href="price.html">← Back to price</a>
+        <!-- Right: live listing sheet -->
+        <section aria-label="Listing sheet preview">
+          <div class="preview-bar">
+            <h2>Your listing sheet</h2>
+            <div class="photo-drop">
+              <label class="btn btn-ghost btn-sm" for="photos">+ Add photos</label>
+              <input type="file" id="photos" accept="image/*" multiple>
+              <button class="btn btn-accent btn-sm" id="pdf" type="button">Save as PDF</button>
+            </div>
+          </div>
+          <div class="card" style="padding:14px 18px;margin-bottom:14px">
+            <div class="field-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">
+              <div class="field">
+                <label for="list-price">List price ($)</label>
+                <input id="list-price" type="number" min="1" step="1000" inputmode="numeric">
+                <span class="hint" id="price-hint"></span>
+              </div>
+              <div class="field">
+                <label for="show-price">Show price on sheet</label>
+                <select id="show-price"><option value="yes">Yes</option><option value="no">No (“Contact for price”)</option></select>
+              </div>
+              <div class="field" style="justify-content:flex-end">
+                <button class="btn btn-ghost btn-sm" type="button" id="restart">Restart Q&amp;A</button>
+              </div>
+            </div>
+            <p class="small" style="margin:10px 0 0">Tip: click the headline or description on the sheet to edit it. The first photo is the cover; photos stay in this tab only. In the print window, choose <b>Save as PDF</b> as the destination.</p>
+          </div>
+          <div class="sheet-frame" id="sheet-frame">
+            <div class="sheet-scale" id="sheet-scale"><div class="sheet" id="sheet"></div></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="btn-row between">
+        <a class="btn btn-ghost" href="price.html">← Back to price</a>
+        <a class="btn btn-ghost" href="intake.html">Edit home details</a>
       </div>
     </div>
   </main>
 
   <footer class="site-footer">
-    <div class="wrap">We don't handle offers, contracts, payments, or closing.</div>
+    <div class="wrap">We don't handle offers, contracts, payments, or closing. Listing text is a draft: check it before you publish.</div>
   </footer>
 
   <script src="js/property.js"></script>
-  <script>
-  (function () {
-    const P = window.Property;
-    const rec = P.load();
-    if (!rec) { window.location.replace("intake.html"); return; }
-
-    // Show every filled-in field, grouped order, using schema labels.
-    const dl = document.getElementById("summary");
-    for (const f of P.FIELDS) {
-      let v = rec[f.name];
-      if (v === undefined || (Array.isArray(v) && !v.length)) continue;
-      if (Array.isArray(v)) v = v.map((x) => P.labelFor(f.name, x)).join(", ");
-      else if (f.options) v = P.labelFor(f.name, v);
-      const dt = document.createElement("dt"); dt.textContent = f.label;
-      const dd = document.createElement("dd"); dd.textContent = v;
-      dl.append(dt, dd);
-    }
-  })();
-  </script>
+  <script src="js/nav.js"></script>
+  <script src="js/listing.js"></script>
 </body>
 </html>
