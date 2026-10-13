@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing interview</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .li-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  .li-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .li-grid { grid-template-columns: 1fr; } }
+  .li-panel { border: 1px solid #d9d9d9; border-radius: 10px; padding: 16px; background: #fff; }
+  .li-log { height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .li-msg { max-width: 85%; padding: 10px 12px; border-radius: 10px; line-height: 1.4; white-space: pre-wrap; }
+  .li-msg.bot { background: #f0f0f0; align-self: flex-start; }
+  .li-msg.you { background: #1f3a5f; color: #fff; align-self: flex-end; }
+  .li-form { display: flex; gap: 8px; }
+  .li-form input { flex: 1; padding: 10px; font-size: 16px; }
+  .li-form button, .li-copy { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+  .li-note { font-size: 14px; color: #555; margin: 8px 0 0; }
+  .li-fields { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0 0 16px; }
+  .li-fields dt { color: #555; }
+  .li-fields dd { margin: 0; }
+  .li-desc { white-space: pre-wrap; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="li-wrap">
+  <h1>Build your listing</h1>
+  <p>Answer a few questions about your home. Your answers fill in the listing on the right.</p>
+
+  <div class="li-grid">
+    <section class="li-panel" aria-label="Interview">
+      <div class="li-log" id="log" aria-live="polite"></div>
+      <form class="li-form" id="form">
+        <input id="input" type="text" autocomplete="off" placeholder="Type your answer" aria-label="Your answer">
+        <button type="submit" id="send">Send</button>
+      </form>
+      <p class="li-note" id="status"></p>
+    </section>
+
+    <section class="li-panel" aria-label="Listing preview">
+      <h2>Your listing</h2>
+      <p id="empty">Your listing appears here when the interview is done.</p>
+      <div id="result" hidden>
+        <dl class="li-fields" id="fields"></dl>
+        <h3>Public description</h3>
+        <p class="li-desc" id="desc"></p>
+        <p class="li-note" id="count"></p>
+        <button class="li-copy" id="copy" type="button">Copy description</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="js/property.js"></script>
+<script>
+// Flip to false once /api/listing is deployed with the Parley env vars.
+const MOCK = true;
+
+const log = document.getElementById("log");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+const statusEl = document.getElementById("status");
+
+let property = null;
+try { property = (window.Property && Property.load()) || null; } catch (e) { property = null; }
+
+const messages = [];   // full conversation sent to the API
+let mockStep = 0;
+
+const MOCK_QUESTIONS = [
+  "Hi! I'll ask a few quick questions to build your listing. First: what updates or renovations have you made to the kitchen and bathrooms?",
+  "Thanks. What are the main flooring types and any recent interior updates (paint, windows, lighting)?",
+  "What do you like best about the outdoor space: yard, deck, landscaping?",
+  "Are there any systems that were replaced recently (roof, furnace, water heater)?",
+  "Last one: is there anything else about the property worth mentioning?"
+];
+
+function addMsg(text, who) {
+  const el = document.createElement("div");
+  el.className = "li-msg " + who;
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+function setBusy(b) {
+  input.disabled = b; sendBtn.disabled = b;
+  statusEl.textContent = b ? "Thinking…" : "";
+}
+
+async function getReply() {
+  if (MOCK) {
+    await new Promise(r => setTimeout(r, 400));
+    if (mockStep < MOCK_QUESTIONS.length) return MOCK_QUESTIONS[mockStep++];
+    return '<final>' + JSON.stringify({
+      fields: { propertyType: property?.propertyType || "single-family", zip: property?.zip || "", bedrooms: property?.bedrooms || null },
+      description: "Sample description. Replace with live output once Parley is connected."
+    }) + '</final>';
+  }
+  const res = await fetch("/api/listing", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ property, messages })
+  });
+  if (!res.ok) throw new Error("Request failed (" + res.status + ")");
+  const data = await res.json();
+  return data.reply || "";
+}
+
+function renderFinal(obj) {
+  document.getElementById("empty").hidden = true;
+  document.getElementById("result").hidden = false;
+  const dl = document.getElementById("fields");
+  dl.textContent = "";
+  Object.entries(obj.fields || {}).forEach(([k, v]) => {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = Array.isArray(v) ? v.join(", ") : String(v);
+    dl.append(dt, dd);
+  });
+  const d = obj.description || "";
+  document.getElementById("desc").textContent = d;
+  document.getElementById("count").textContent = d.length + " characters (many MLS limits are around 1,000)";
+}
+
+async function turn() {
+  setBusy(true);
+  try {
+    const reply = await getReply();
+    const m = reply.match(/<final>([\s\S]*?)<\/final>/);
+    if (m) {
+      let obj = null;
+      try { obj = JSON.parse(m[1]); } catch (e) {}
+      messages.push({ role: "assistant", content: reply });
+      if (obj) {
+        addMsg("All set. Your listing is on the right.", "bot");
+        renderFinal(obj);
+      } else {
+        addMsg("I couldn't read the final listing. Send another message to try again.", "bot");
+      }
+      input.disabled = !obj; sendBtn.disabled = !obj;
+      statusEl.textContent = "";
+      return;
+    }
+    messages.push({ role: "assistant", content: reply });
+    addMsg(reply, "bot");
+    setBusy(false);
+    input.focus();
+  } catch (e) {
+    statusEl.textContent = "Something went wrong: " + e.message + ". Send your message again.";
+    input.disabled = false; sendBtn.disabled = false;
+  }
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  messages.push({ role: "user", content: text });
+  addMsg(text, "you");
+  turn();
+});
+
+document.getElementById("copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("desc").textContent);
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy description", 1500);
+});
+
+// Kick off: hidden starter message so the conversation opens with a user turn.
+if (!property) {
+  statusEl.textContent = "No saved property found. Fill out the intake form first for better questions.";
+}
+messages.push({ role: "user", content: "Please begin the interview." });
+turn();
+</script>
+</body>
+</html>
